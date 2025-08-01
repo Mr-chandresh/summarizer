@@ -5,7 +5,7 @@ import re
 # App Title & Config
 st.set_page_config(page_title="🧠 Smart AI Text Summarizer", layout="centered")
 st.title("📚 Smart AI Text Summarizer")
-st.write("Paste any long text and get a meaningful, focused summary on key themes like importance, purpose, and mindfulness 🔍")
+st.write("Paste any long text and get a meaningful, focused summary on key themes like importance, purpose, mindfulness 🔍")
 
 # User input
 text = st.text_area("📝 Paste your long text below:", height=300)
@@ -13,7 +13,7 @@ text = st.text_area("📝 Paste your long text below:", height=300)
 # Word limit slider
 word_limit = st.slider("✂ Desired summary length (approx. word count):", 30, 200, 80)
 
-# Load summarizer (cached)
+# Load summarizer
 @st.cache_resource
 def load_summarizer():
     return pipeline("summarization", model="facebook/bart-large-cnn")
@@ -21,41 +21,39 @@ def load_summarizer():
 summarizer = load_summarizer()
 
 def clean_text(text):
-    """Remove extra whitespaces and tidy up text."""
     return re.sub(r'\s+', ' ', text.strip())
 
 def extract_key_points(summary_text):
-    """Split summary into bullet points for clarity."""
     sentences = re.split(r'(?<=[.!?]) +', summary_text)
-    # Filter out too-short sentences
     points = [f"• {s.strip()}" for s in sentences if len(s.strip()) > 30]
     return points
 
-# Generate summary button
 if st.button("🚀 Generate Focused Summary"):
     if not text.strip():
         st.warning("⚠️ Please paste some content to summarize.")
     else:
         with st.spinner("✨ Thinking deeply and summarizing..."):
             cleaned = clean_text(text)
-            # Dynamic length calculation
+
+            # Add prompt / instruction
+            prompt_text = (
+                "Summarize this text focusing on: importance of time, student life, mindfulness and purpose.\n\n" + cleaned
+            )
+
             max_len = int(word_limit * 1.3)
             min_len = int(word_limit * 0.6)
 
-            # Generate summary
             result = summarizer(
-                cleaned,
+                prompt_text,
                 max_length=max_len,
                 min_length=min_len,
                 do_sample=False
             )
             summary_text = result[0]['summary_text']
 
-            # Display summary
             st.subheader("🧠 Summary Output:")
             st.success(summary_text)
 
-            # Display bullet points
             key_points = extract_key_points(summary_text)
             if key_points:
                 st.subheader("📌 Key Points:")
@@ -66,3 +64,4 @@ if st.button("🚀 Generate Focused Summary"):
 
 st.markdown("---")
 st.markdown("✅ Built with [Streamlit](https://streamlit.io) & 🤗 HuggingFace Transformers")
+
